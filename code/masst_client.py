@@ -79,17 +79,17 @@ def process_matches(
         library_matches, precursor_mz_tol, min_matched_signals, analog, False
     ).unfiltered_masst_df
 
-    if len(lib_matches_df) > 0:
-        lib_matches_df[LIB_COLUMNS].to_csv(
-            "{}_library.tsv".format(common_file), index=False, sep="\t"
-        )
+    # if len(lib_matches_df) > 0:
+    #     lib_matches_df[LIB_COLUMNS].to_csv(
+    #         "{}_library.tsv".format(common_file), index=False, sep="\t"
+    #     )
 
     if "grouped_by_dataset" not in matches:
         logger.debug("Missing datasets")
     # extract matches
     datasets_df = masst.extract_datasets_from_masst_results(matches, unfiltered_matches_df)
-    if len(datasets_df) > 0:
-        datasets_df.to_csv("{}_datasets.tsv".format(common_file), index=False, sep="\t")
+    # if len(datasets_df) > 0:
+    #     datasets_df.to_csv("{}_datasets.tsv".format(common_file), index=False, sep="\t")
 
     # add library matches to table
     lib_match_json = lib_matches_df.to_json(orient="records")
