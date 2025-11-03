@@ -97,199 +97,211 @@ def process_matches(
     # add library matches to table
     lib_match_json = lib_matches_df.to_json(orient="records")
 
-    # microbeMASST
+    # Export HTML trees for different MASST databases
+    # Each tree represents matches visualized in an interactive HTML format
+    
+    # microbeMASST - Export tree for microbe-related matches
     logger.debug("Exporting microbeMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.MICROBE_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
+    # create_enriched_masst_tree(
+    #     filtered_matches_df,
+    #     masst.MICROBE_MASST,
+    #     common_file=common_file,
+    #     lib_match_json=lib_match_json,
+    #     input_str=input_label,
+    #     parameter_str=params_label,
+    #     usi=usi,
+    #     format_out_json=False,
+    #     compress_out_html=True,
+    # )
 
     if analog:
+        # Export analog version of microbeMASST tree for analog matches
         logger.debug("Exporting microbeMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.MICROBE_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
+        # create_enriched_masst_tree(
+        #     analog_matches_df,
+        #     masst.MICROBE_MASST,
+        #     common_file=common_file + "_analog",
+        #     lib_match_json=lib_match_json,
+        #     input_str=input_label,
+        #     parameter_str=params_label,
+        #     usi=usi,
+        #     format_out_json=False,
+        #     compress_out_html=True,
+        # )
 
-    # plantMASST
+    # plantMASST - Export tree for plant-related matches
     logger.debug("Exporting plantMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.PLANT_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
+    # create_enriched_masst_tree(
+    #     filtered_matches_df,
+    #     masst.PLANT_MASST,
+    #     common_file=common_file,
+    #     lib_match_json=lib_match_json,
+    #     input_str=input_label,
+    #     parameter_str=params_label,
+    #     usi=usi,
+    #     format_out_json=False,
+    #     compress_out_html=True,
+    # )
 
     if analog:
+        # Export analog version of plantMASST tree for analog matches
         logger.debug("Exporting plantMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.PLANT_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
+        # create_enriched_masst_tree(
+        #     analog_matches_df,
+        #     masst.PLANT_MASST,
+        #     common_file=common_file + "_analog",
+        #     lib_match_json=lib_match_json,
+        #     input_str=input_label,
+        #     parameter_str=params_label,
+        #     usi=usi,
+        #     format_out_json=False,
+        #     compress_out_html=True,
+        # )
 
-    # tissueMASST
+    # tissueMASST - Export tree for tissue-related matches
     logger.debug("Exporting tissueMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.TISSUE_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
+    # create_enriched_masst_tree(
+    #     filtered_matches_df,
+    #     masst.TISSUE_MASST,
+    #     common_file=common_file,
+    #     lib_match_json=lib_match_json,
+    #     input_str=input_label,
+    #     parameter_str=params_label,
+    #     usi=usi,
+    #     format_out_json=False,
+    #     compress_out_html=True,
+    # )
 
     if analog:
+        # Export analog version of tissueMASST tree for analog matches
         logger.debug("Exporting tissueMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.TISSUE_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
+        # create_enriched_masst_tree(
+        #     analog_matches_df,
+        #     masst.TISSUE_MASST,
+        #     common_file=common_file + "_analog",
+        #     lib_match_json=lib_match_json,
+        #     input_str=input_label,
+        #     parameter_str=params_label,
+        #     usi=usi,
+        #     format_out_json=False,
+        #     compress_out_html=True,
+        # )
 
-    # foodMASST
+    # foodMASST - Export tree for food-related matches
     logger.debug("Exporting foodMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.FOOD_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
+    # create_enriched_masst_tree(
+    #     filtered_matches_df,
+    #     masst.FOOD_MASST,
+    #     common_file=common_file,
+    #     lib_match_json=lib_match_json,
+    #     input_str=input_label,
+    #     parameter_str=params_label,
+    #     usi=usi,
+    #     format_out_json=False,
+    #     compress_out_html=True,
+    # )
 
     if analog:
+        # Export analog version of foodMASST tree for analog matches
         logger.debug("Exporting foodMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.FOOD_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
+        # create_enriched_masst_tree(
+        #     analog_matches_df,
+        #     masst.FOOD_MASST,
+        #     common_file=common_file + "_analog",
+        #     lib_match_json=lib_match_json,
+        #     input_str=input_label,
+        #     parameter_str=params_label,
+        #     usi=usi,
+        #     format_out_json=False,
+        #     compress_out_html=True,
+        # )
 
-    # personalCareProductMASST
+    # personalCareProductMASST - Export tree for personal care product-related matches
     logger.debug("Exporting personalCareProductMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.PERSONALCAREPRODUCT_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
+    # create_enriched_masst_tree(
+    #     filtered_matches_df,
+    #     masst.PERSONALCAREPRODUCT_MASST,
+    #     common_file=common_file,
+    #     lib_match_json=lib_match_json,
+    #     input_str=input_label,
+    #     parameter_str=params_label,
+    #     usi=usi,
+    #     format_out_json=False,
+    #     compress_out_html=True,
+    # )
 
     if analog:
+        # Export analog version of personalCareProductMASST tree for analog matches
         logger.debug("Exporting personalCareProductMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.PERSONALCAREPRODUCT_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
+        # create_enriched_masst_tree(
+        #     analog_matches_df,
+        #     masst.PERSONALCAREPRODUCT_MASST,
+        #     common_file=common_file + "_analog",
+        #     lib_match_json=lib_match_json,
+        #     input_str=input_label,
+        #     parameter_str=params_label,
+        #     usi=usi,
+        #     format_out_json=False,
+        #     compress_out_html=True,
+        # )
 
-    # microbiomeMASST
+    # microbiomeMASST - Export tree for microbiome-related matches
     logger.debug("Exporting microbiomeMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.MICROBIOME_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
+    # create_enriched_masst_tree(
+    #     filtered_matches_df,
+    #     masst.MICROBIOME_MASST,
+    #     common_file=common_file,
+    #     lib_match_json=lib_match_json,
+    #     input_str=input_label,
+    #     parameter_str=params_label,
+    #     usi=usi,
+    #     format_out_json=False,
+    #     compress_out_html=True,
+    # )
 
     if analog:
+        # Export analog version of microbiomeMASST tree for analog matches
         logger.debug("Exporting microbiomeMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.MICROBIOME_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
+        # create_enriched_masst_tree(
+        #     analog_matches_df,
+        #     masst.MICROBIOME_MASST,
+        #     common_file=common_file + "_analog",
+        #     lib_match_json=lib_match_json,
+        #     input_str=input_label,
+        #     parameter_str=params_label,
+        #     usi=usi,
+        #     format_out_json=False,
+        #     compress_out_html=True,
+        # )
 
-    # combined from all
+    # Export combined tree from all MASST databases
+    # This creates a unified visualization containing matches from all database types
     logger.debug("Exporting combined tree %s", compound_name)
-    create_combined_masst_tree(
-        filtered_matches_df,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
+    # create_combined_masst_tree(
+    #     filtered_matches_df,
+    #     common_file=common_file,
+    #     lib_match_json=lib_match_json,
+    #     input_str=input_label,
+    #     parameter_str=params_label,
+    #     usi=usi,
+    #     format_out_json=False,
+    #     compress_out_html=True,
+    # )
 
     if analog:
+        # Export analog version of combined tree for analog matches
+        # This creates a unified visualization containing analog matches from all database types
         logger.debug("Exporting combined tree analog %s", compound_name)
-        create_combined_masst_tree(
-            analog_matches_df,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
+        # create_combined_masst_tree(
+        #     analog_matches_df,
+        #     common_file=common_file + "_analog",
+        #     lib_match_json=lib_match_json,
+        #     input_str=input_label,
+        #     parameter_str=params_label,
+        #     usi=usi,
+        #     format_out_json=False,
+        #     compress_out_html=True,
+        # )
 
     return unfiltered_matches_df
 
@@ -325,7 +337,8 @@ def query_usi_or_id(
         logger.debug("Query fastMASST id:%s  of %s", usi_or_lib_id, compound_name)
 
         if database is None:
-            database = masst.DataBase.metabolomicspanrepo_index_nightly
+            # Align with available enums in masst_utils.DataBase
+            database = masst.DataBase.metabolomicspanrepo_index_latest
 
         matches = masst.fast_masst(
             usi_or_lib_id,
