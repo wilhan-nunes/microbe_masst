@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 files = [
-     (r"../examples/wender_plants.csv", "../output/example/feature"),
+     ("/Users/wilhan/PycharmProjects/microbe_masst/bromeliads_all_samples_test5_iimn_fbmn.mgf", "../output/bromeliads"),
     # (r"../examples/vta_filter.mgf", "../output/examples/vta_"),
 ]
 
@@ -33,6 +33,6 @@ if __name__ == "__main__":
                 sep=sep,
             )
         except:
-            pass
+            raise
     # exit with OK
     sys.exit(0)

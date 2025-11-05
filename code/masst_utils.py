@@ -249,19 +249,58 @@ def fast_masst_spectrum_dict(
         raise e
 
 
-def _fast_masst(params):
+import time
+import os
+def _fast_masst(params, host="https://api.fasst.gnps2.org", blocking=True, timeout=5):
     """
-
     :param params: dict of the query input and parameters
+    :param host: base URL for the MASST API endpoint
+    :param blocking: whether to wait for results or return immediately with task_id
+    :param timeout: request timeout in seconds
     :return: dict with the masst results. [results] contains the individual matches, [grouped_by_dataset] contains
     all datasets and their titles
     """
-    search_api_response = requests.post(URL, data=params, timeout=300)
-    logging.debug("fastMASST response={}".format(search_api_response.status_code))
-    search_api_response.raise_for_status()
-    search_api_response_json = search_api_response.json()
-    return search_api_response_json
+    query_url = os.path.join(host, "search")
 
+    r = requests.post(query_url, json=params, timeout=timeout)
+    logging.debug("fastMASST response={}".format(r.status_code))
+    r.raise_for_status()
+
+    task_id = r.json()["id"]
+
+    params["task_id"] = task_id
+    if blocking is False:
+        params["status"] = "PENDING"
+        return params
+
+    return blocking_for_results(params, host=host)
+
+
+def blocking_for_results(query_parameters_dictionary, host="https://api.fasst.gnps2.org"):
+    task_id = query_parameters_dictionary["task_id"]
+
+    retries_max = 120
+    current_retries = 0
+    while True:
+        print("WAITING FOR RESULTS", current_retries, task_id)
+        logging.debug(f"WAITING FOR RESULTS, retries{current_retries}, taskid: {task_id}")
+
+        r = requests.get(os.path.join(host, "search/result/{}".format(task_id)), timeout=30)
+
+        r.raise_for_status()
+
+        # checking if the results are ready
+        if "status" in r.json() and r.json()["status"] == "PENDING":
+            time.sleep(1)
+            current_retries += 1
+
+            if current_retries >= retries_max:
+                logging.exception("Timeout waiting for results from FASST API")
+                raise Exception("Timeout waiting for results from FASST API")
+
+            continue
+
+        return r.json()
 
 def filter_matches(df, precursor_mz_tol, min_matched_signals, analog):
     # DO NOT FILTER BY MZ FOR ANALOG
