@@ -47,18 +47,18 @@ def create_enriched_masst_tree(
         if len(results_df) <= 0:
             return None
         
-        results_df = group_matches(special_masst, results_df)
-        # adds them to the json ontology
-        json_ontology_extender.add_data_to_ontology_file(
-            special_masst=special_masst,
-            output=out_json_tree,
-            meta_matched_df=results_df,
-            format_out_json=format_out_json,
-        )
+        # results_df = group_matches(special_masst, results_df)
+        # # adds them to the json ontology
+        # json_ontology_extender.add_data_to_ontology_file(
+        #     special_masst=special_masst,
+        #     output=out_json_tree,
+        #     meta_matched_df=results_df,
+        #     format_out_json=format_out_json,
+        # )
         # bundles the final html
-        return bundle_to_html.build_dist_html(
-            in_html, out_html, replace_dict, compress_out_html
-        )
+        # return bundle_to_html.build_dist_html(
+        #     in_html, out_html, replace_dict, compress_out_html
+        # )
     except Exception as e:
         # exit with error
         logger.exception(e)
