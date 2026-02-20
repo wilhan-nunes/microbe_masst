@@ -9,6 +9,7 @@ import json
 import pandas as pd
 from dataclasses import dataclass
 from typing import Optional
+from urllib.parse import urljoin
 
 from pandas import DataFrame
 
@@ -260,7 +261,7 @@ def _fast_masst(params, host="https://api.fasst.gnps2.org", blocking=True, timeo
     :return: dict with the masst results. [results] contains the individual matches, [grouped_by_dataset] contains
     all datasets and their titles
     """
-    query_url = os.path.join(host, "search")
+    query_url = urljoin(host, "search")
 
     r = requests.post(query_url, json=params, timeout=timeout)
     logging.debug("fastMASST response={}".format(r.status_code))
@@ -285,7 +286,7 @@ def blocking_for_results(query_parameters_dictionary, host="https://api.fasst.gn
         print("WAITING FOR RESULTS", current_retries, task_id)
         logging.debug(f"WAITING FOR RESULTS, retries{current_retries}, taskid: {task_id}")
 
-        r = requests.get(os.path.join(host, "search/result/{}".format(task_id)), timeout=30)
+        r = requests.get(urljoin(host, "search/result/{}".format(task_id)), timeout=30)
 
         r.raise_for_status()
 
