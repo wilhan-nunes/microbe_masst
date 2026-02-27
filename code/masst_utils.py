@@ -252,6 +252,8 @@ def fast_masst_spectrum_dict(
         raise e
 
 
+
+
 def _fast_masst(params, host="https://api.fasst.gnps2.org", blocking=True, timeout=5):
     """
     :param params: dict of the query input and parameters
@@ -270,29 +272,28 @@ def _fast_masst(params, host="https://api.fasst.gnps2.org", blocking=True, timeo
     task_id = r.json()["id"]
 
     params["task_id"] = task_id
+    params["status"] = "PENDING"
+    
     if blocking is False:
-        params["status"] = "PENDING"
         return params
 
-    return blocking_for_results(params, host=host)
+    return get_results(params, host=host, blocking=True)
 
 
-def blocking_for_results(query_parameters_dictionary, host="https://api.fasst.gnps2.org"):
+def get_results(query_parameters_dictionary, host="https://api.fasst.gnps2.org", blocking=True):
     task_id = query_parameters_dictionary["task_id"]
-
+    
     retries_max = 120
     current_retries = 0
     while True:
         print("WAITING FOR RESULTS", current_retries, task_id)
-        logging.debug(f"WAITING FOR RESULTS, retries{current_retries}, taskid: {task_id}")
-
-        r = requests.get(urljoin(host, "search/result/{}".format(task_id)), timeout=30)
-
-        r.raise_for_status()
+        
+        r = requests.get(os.path.join(host, "search/result/{}".format(task_id)), timeout=30)
 
         # checking if the results are ready
-        if "status" in r.json() and r.json()["status"] == "PENDING":
-            time.sleep(1)
+        if "results" not in r.json():
+            
+            time.sleep(2)
             current_retries += 1
 
             if current_retries >= retries_max:
@@ -301,7 +302,9 @@ def blocking_for_results(query_parameters_dictionary, host="https://api.fasst.gn
 
             continue
 
-        return r.json()
+        results_dict = r.json()
+    
+        return results_dict
 
 
 def filter_matches(df, precursor_mz_tol, min_matched_signals, analog):

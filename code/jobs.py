@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 files = [
-     (r"../examples/wender_plants.csv", "../output/example/feature"),
+     (r"../examples/small.mgf", "../output/example/feature"),
     # (r"../examples/vta_filter.mgf", "../output/examples/vta_"),
 ]
 
