@@ -25,6 +25,8 @@ def main(
     parallel_queries=5,
     skip_existing=True,
     analog=False,
+    analog_mass_below=150,
+    analog_mass_above=200,
 ):
     sep = "," if input_file.endswith("csv") else "\t"
 
@@ -39,6 +41,8 @@ def main(
         parallel_queries=parallel_queries,
         skip_existing=skip_existing,
         analog=analog,
+        analog_mass_below=analog_mass_below,
+        analog_mass_above=analog_mass_above,
         sep=sep,
     )
 
@@ -71,6 +75,18 @@ if __name__ == "__main__":
     parser.add_argument(
         "--analog", action="store_true", default=False, help="Search for analogs"
     )
+    parser.add_argument(
+        "--analog-mass-below",
+        type=float,
+        default=150,
+        help="Analog search mass below (Da)",
+    )
+    parser.add_argument(
+        "--analog-mass-above",
+        type=float,
+        default=200,
+        help="Analog search mass above (Da)",
+    )
 
     args = parser.parse_args()
 
@@ -85,6 +101,8 @@ if __name__ == "__main__":
             args.parallel_queries,
             args.skip_existing,
             args.analog,
+            args.analog_mass_below,
+            args.analog_mass_above,
         )
         sys.exit(0)
     except Exception as e:
