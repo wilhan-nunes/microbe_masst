@@ -1,5 +1,6 @@
 import sys
 import logging
+import hashlib
 from tqdm import tqdm
 import re
 import argparse
@@ -294,9 +295,26 @@ def process_matches(
     return unfiltered_matches_df
 
 
-def common_base_file_name(compound_name, file_name):
+def common_base_file_name(compound_name, file_name, max_filename_len=50):
+    """Build base file path from file_name and compound_name.
+    Truncates the filename component to max_filename_len characters
+    (leaving room for suffixes like '_unfiltered_matches.tsv') and
+    appends a short hash to preserve uniqueness when truncated.
+    """
     if compound_name:
-        return "{}_{}".format(file_name, compound_name.replace(" ", "_"))
+        safe_name = compound_name.replace(" ", "_")
+        full = "{}_{}".format(file_name, safe_name)
+        # Split into directory and filename parts
+        if "/" in full:
+            dir_part, fname = full.rsplit("/", 1)
+        else:
+            dir_part, fname = "", full
+
+        if len(fname) > max_filename_len:
+            name_hash = hashlib.md5(safe_name.encode()).hexdigest()[:8]
+            fname = fname[: max_filename_len - 9] + "_" + name_hash
+
+        return "{}/{}".format(dir_part, fname) if dir_part else fname
     else:
         return "{}".format(file_name)
 
