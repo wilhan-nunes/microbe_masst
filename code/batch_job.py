@@ -27,8 +27,19 @@ def main(
     analog=False,
     analog_mass_below=150,
     analog_mass_above=200,
+    database="metabolomicspanrepo_index_nightly",
+    export_domains="all",
+    export_html=True,
+    export_json=False,
 ):
     sep = "," if input_file.endswith("csv") else "\t"
+    
+    # Convert database string to enum
+    try:
+        db_enum = DataBase[database] if isinstance(database, str) else database
+    except KeyError:
+        logger.warning(f"Unknown database '{database}', using default")
+        db_enum = DataBase.metabolomicspanrepo_index_nightly
 
     run_on_usi_list_or_mgf_file(
         in_file=input_file,
@@ -37,12 +48,15 @@ def main(
         mz_tol=mz_tol,
         precursor_mz_tol=prec_tol,
         min_matched_signals=min_matched_signals,
-        database=DataBase.metabolomicspanrepo_index_nightly,
+        database=db_enum,
         parallel_queries=parallel_queries,
         skip_existing=skip_existing,
         analog=analog,
         analog_mass_below=analog_mass_below,
         analog_mass_above=analog_mass_above,
+        export_domains=export_domains,
+        export_html=export_html,
+        export_json=export_json,
         sep=sep,
     )
 
@@ -87,6 +101,36 @@ if __name__ == "__main__":
         default=200,
         help="Analog search mass above (Da)",
     )
+    parser.add_argument(
+        "--database",
+        type=str,
+        default="metabolomicspanrepo_index_nightly",
+        help="Database to search (metabolomicspanrepo_index_nightly, gnpsdata_index, gnpslibrary, etc.)",
+    )
+    parser.add_argument(
+        "--export-domains",
+        type=str,
+        default="all",
+        help="Semicolon or comma-separated list of domains to export (microbe;plant;food;tissue;personalCareProduct;microbiome), 'all', or 'none' to skip domain trees",
+    )
+    parser.add_argument(
+        "--export-html",
+        action="store_true",
+        default=True,
+        help="Export HTML tree visualizations",
+    )
+    parser.add_argument(
+        "--no-export-html",
+        dest="export_html",
+        action="store_false",
+        help="Do not export HTML tree visualizations",
+    )
+    parser.add_argument(
+        "--export-json",
+        action="store_true",
+        default=False,
+        help="Export JSON tree files",
+    )
 
     args = parser.parse_args()
 
@@ -103,6 +147,10 @@ if __name__ == "__main__":
             args.analog,
             args.analog_mass_below,
             args.analog_mass_above,
+            args.database,
+            args.export_domains,
+            args.export_html,
+            args.export_json,
         )
         sys.exit(0)
     except Exception as e:

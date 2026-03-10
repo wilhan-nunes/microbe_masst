@@ -44,6 +44,9 @@ def run_on_usi_list_or_mgf_file(
     library: str | DataBase = None,
     parallel_queries=10,
     skip_existing=False,
+    export_domains="all",
+    export_html=True,
+    export_json=False,
 ):
     """
 
@@ -78,6 +81,9 @@ def run_on_usi_list_or_mgf_file(
             library=library,
             parallel_queries=parallel_queries,
             skip_existing=skip_existing,
+            export_domains=export_domains,
+            export_html=export_html,
+            export_json=export_json,
         )
     else:
         return run_on_usi_and_id_list(
@@ -97,6 +103,9 @@ def run_on_usi_list_or_mgf_file(
             library=library,
             parallel_queries=parallel_queries,
             skip_existing=skip_existing,
+            export_domains=export_domains,
+            export_html=export_html,
+            export_json=export_json,
         )
 
 
@@ -117,6 +126,9 @@ def run_on_usi_and_id_list(
     library: str = None,
     parallel_queries=100,
     skip_existing=False,
+    export_domains="all",
+    export_html=True,
+    export_json=False,
 ):
     jobs_df = pd.read_csv(input_file, sep=sep)
     jobs_df.rename(
@@ -163,6 +175,9 @@ def run_on_usi_and_id_list(
                 analog_mass_above=analog_mass_above,
                 database=database,
                 library=library,
+                export_domains=export_domains,
+                export_html=export_html,
+                export_json=export_json,
             )
             for compound_id, name in zip(jobs_df["input_id"], jobs_df["Compound"])
         ]
@@ -191,6 +206,9 @@ def run_on_mgf(
     library: str = None,
     parallel_queries=100,
     skip_existing=False,
+    export_domains="all",
+    export_html=True,
+    export_json=False,
 ):
     ids, precursor_mzs, precursor_charges, lib_ids = [], [], [], []
     mzs, intensities = [], []
@@ -265,6 +283,9 @@ def run_on_mgf(
                 database=database,
                 library=library,
                 lib_id=lib_id,
+                export_domains=export_domains,
+                export_html=export_html,
+                export_json=export_json,
             )
             for name, lib_id, prec_mz, prec_charge, mz_array, intensity_array in zip(
                 jobs_df["Compound"],
@@ -296,6 +317,9 @@ def run_on_mgf(
                     database=database,
                     library=library,
                     lib_id=lib_id,
+                    export_domains=export_domains,
+                    export_html=export_html,
+                    export_json=export_json,
                 )
                 for name, lib_id, prec_mz, prec_charge, mz_array, intensity_array in zip(
                     jobs_df["Compound"],

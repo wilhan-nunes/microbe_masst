@@ -24,6 +24,8 @@ def create_enriched_masst_tree(
     in_html="../code/collapsible_tree_v3.html",
     format_out_json=False,
     compress_out_html=True,
+    skip_html=False,
+    skip_json=False,
 ):
     if (matches_df is None) or (len(matches_df) <= 0):
         return False
@@ -40,7 +42,12 @@ def create_enriched_masst_tree(
             "PARAMS_PLACEHOLDER": parameter_str,
         }
 
-        prepare_paths(files=[out_counts_file, out_html, out_json_tree])
+        files_to_prepare = [out_counts_file]
+        if not skip_html:
+            files_to_prepare.append(out_html)
+        if not skip_json:
+            files_to_prepare.append(out_json_tree)
+        prepare_paths(files=files_to_prepare)
 
         # exports the counts file for all matches
         results_df = export_metadata_matches(special_masst, matches_df, out_counts_file)
@@ -48,17 +55,23 @@ def create_enriched_masst_tree(
             return None
         
         results_df = group_matches(special_masst, results_df)
-        # adds them to the json ontology
+        
+        # adds them to the json ontology (needed even if skip_json for combined tree)
         json_ontology_extender.add_data_to_ontology_file(
             special_masst=special_masst,
             output=out_json_tree,
             meta_matched_df=results_df,
             format_out_json=format_out_json,
         )
+        
         # bundles the final html
-        return bundle_to_html.build_dist_html(
-            in_html, out_html, replace_dict, compress_out_html
-        )
+        html_result = None
+        if not skip_html and compress_out_html:
+            html_result = bundle_to_html.build_dist_html(
+                in_html, out_html, replace_dict, compress_out_html
+            )
+        
+        return html_result
     except Exception as e:
         # exit with error
         logger.exception(e)
@@ -76,6 +89,8 @@ def create_combined_masst_tree(
     in_html="../code/collapsible_tree_v3.html",
     format_out_json=False,
     compress_out_html=True,
+    skip_html=False,
+    skip_json=False,
 ):
     if (matches_df is None) or (len(matches_df) <= 0):
         return False
@@ -108,20 +123,29 @@ def create_combined_masst_tree(
     try:
         combined_prefix = "combined"
         out_json_tree = "{}_{}.json".format(common_file, combined_prefix)
-        prepare_paths(files=[out_json_tree])
-
-        with open(out_json_tree, "w") as file:
-            if format_out_json:
-                out_tree = json.dumps(
-                    combined_root, indent=2, cls=json_ontology_extender.NpEncoder
-                )
-            else:
-                out_tree = json.dumps(
-                    combined_root, cls=json_ontology_extender.NpEncoder
-                )
-            print(out_tree, file=file)
-
         out_html = "{}_{}.html".format(common_file, combined_prefix)
+        
+        files_to_prepare = []
+        if not skip_json:
+            files_to_prepare.append(out_json_tree)
+        if not skip_html:
+            files_to_prepare.append(out_html)
+        
+        if files_to_prepare:
+            prepare_paths(files=files_to_prepare)
+
+        if not skip_json:
+            with open(out_json_tree, "w") as file:
+                if format_out_json:
+                    out_tree = json.dumps(
+                        combined_root, indent=2, cls=json_ontology_extender.NpEncoder
+                    )
+                else:
+                    out_tree = json.dumps(
+                        combined_root, cls=json_ontology_extender.NpEncoder
+                    )
+                print(out_tree, file=file)
+
         replace_dict = {
             "PLACEHOLDER_JSON_DATA": out_json_tree,
             "LIBRARY_JSON_DATA_PLACEHOLDER": lib_match_json,
@@ -131,9 +155,10 @@ def create_combined_masst_tree(
         }
 
         # bundles the final html
-        return bundle_to_html.build_dist_html(
-            in_html, out_html, replace_dict, compress_out_html
-        )
+        if not skip_html and compress_out_html:
+            return bundle_to_html.build_dist_html(
+                in_html, out_html, replace_dict, compress_out_html
+            )
     except Exception as e:
         # exit with error
         logger.exception(e)

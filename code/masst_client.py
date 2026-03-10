@@ -1,6 +1,7 @@
 import sys
 import logging
 import hashlib
+import os
 from tqdm import tqdm
 import re
 import argparse
@@ -44,6 +45,9 @@ def process_matches(
     input_label,
     params_label,
     usi=None,
+    export_domains="all",
+    export_html=True,
+    export_json=False,
 ):
     common_file = common_base_file_name(compound_name, file_name)
 
@@ -95,202 +99,143 @@ def process_matches(
     except:
         pass
 
+    # Skip all domain tree processing if no visualizations are needed
+    # and export_domains is "none" or if both HTML and JSON export are disabled
+    skip_all_trees = (export_domains.lower() == "none") or (not export_html and not export_json)
+    
+    if skip_all_trees:
+        logger.debug("Skipping all domain tree processing for %s (export_domains=%s, export_html=%s, export_json=%s)", 
+                    compound_name, export_domains, export_html, export_json)
+        return unfiltered_matches_df
+    
     # add library matches to table
     lib_match_json = lib_matches_df.to_json(orient="records")
+    
+    # Parse export_domains parameter (supports semicolon or comma separation)
+    if export_domains == "all":
+        domains_to_export = ["microbe", "plant", "food", "tissue", "personalCareProduct", "microbiome", "combined"]
+    else:
+        # Split by semicolon (from multi-select) or comma, and add combined if any domain is selected
+        separator = ";" if ";" in export_domains else ","
+        domains_to_export = [d.strip() for d in export_domains.split(separator) if d.strip()]
+        if domains_to_export:
+            domains_to_export.append("combined")
+    
+    # Map domain names to their MASST objects
+    domain_map = {
+        "microbe": masst.MICROBE_MASST,
+        "plant": masst.PLANT_MASST,
+        "food": masst.FOOD_MASST,
+        "tissue": masst.TISSUE_MASST,
+        "personalCareProduct": masst.PERSONALCAREPRODUCT_MASST,
+        "microbiome": masst.MICROBIOME_MASST,
+    }
 
-    # microbeMASST
-    logger.debug("Exporting microbeMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.MICROBE_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
+    # Export selected domain MASST trees
+    for domain_name, special_masst in domain_map.items():
+        if domain_name in domains_to_export:
+            logger.debug("Exporting %sMASST %s", domain_name, compound_name)
+            create_enriched_masst_tree(
+                filtered_matches_df,
+                special_masst,
+                common_file=common_file,
+                lib_match_json=lib_match_json,
+                input_str=input_label,
+                parameter_str=params_label,
+                usi=usi,
+                format_out_json=export_json,
+                compress_out_html=export_html,
+                skip_html=not export_html,
+                skip_json=not export_json,
+            )
 
-    if analog:
-        logger.debug("Exporting microbeMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.MICROBE_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
+            if analog:
+                logger.debug("Exporting %sMASST analog %s", domain_name, compound_name)
+                create_enriched_masst_tree(
+                    analog_matches_df,
+                    special_masst,
+                    common_file=common_file + "_analog",
+                    lib_match_json=lib_match_json,
+                    input_str=input_label,
+                    parameter_str=params_label,
+                    usi=usi,
+                    format_out_json=export_json,
+                    compress_out_html=export_html,
+                    skip_html=not export_html,
+                    skip_json=not export_json,
+                )
 
-    # plantMASST
-    logger.debug("Exporting plantMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.PLANT_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
-
-    if analog:
-        logger.debug("Exporting plantMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.PLANT_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
-
-    # tissueMASST
-    logger.debug("Exporting tissueMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.TISSUE_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
-
-    if analog:
-        logger.debug("Exporting tissueMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.TISSUE_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
-
-    # foodMASST
-    logger.debug("Exporting foodMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.FOOD_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
-
-    if analog:
-        logger.debug("Exporting foodMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.FOOD_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
-
-    # personalCareProductMASST
-    logger.debug("Exporting personalCareProductMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.PERSONALCAREPRODUCT_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
-
-    if analog:
-        logger.debug("Exporting personalCareProductMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.PERSONALCAREPRODUCT_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
-
-    # microbiomeMASST
-    logger.debug("Exporting microbiomeMASST %s", compound_name)
-    create_enriched_masst_tree(
-        filtered_matches_df,
-        masst.MICROBIOME_MASST,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
-
-    if analog:
-        logger.debug("Exporting microbiomeMASST analog %s", compound_name)
-        create_enriched_masst_tree(
-            analog_matches_df,
-            masst.MICROBIOME_MASST,
-            common_file=common_file + "_analog",
-            lib_match_json=lib_match_json,
-            input_str=input_label,
-            parameter_str=params_label,
-            usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
-        )
-
-    # combined from all
-    logger.debug("Exporting combined tree %s", compound_name)
-    create_combined_masst_tree(
-        filtered_matches_df,
-        common_file=common_file,
-        lib_match_json=lib_match_json,
-        input_str=input_label,
-        parameter_str=params_label,
-        usi=usi,
-        format_out_json=False,
-        compress_out_html=True,
-    )
-
-    if analog:
-        logger.debug("Exporting combined tree analog %s", compound_name)
+    # Export combined tree if requested
+    if "combined" in domains_to_export:
+        logger.debug("Exporting combined tree %s", compound_name)
         create_combined_masst_tree(
-            analog_matches_df,
-            common_file=common_file + "_analog",
+            filtered_matches_df,
+            common_file=common_file,
             lib_match_json=lib_match_json,
             input_str=input_label,
             parameter_str=params_label,
             usi=usi,
-            format_out_json=False,
-            compress_out_html=True,
+            format_out_json=export_json,
+            compress_out_html=export_html,
+            skip_html=not export_html,
+            skip_json=not export_json,
         )
+
+        if analog:
+            logger.debug("Exporting combined tree analog %s", compound_name)
+            create_combined_masst_tree(
+                analog_matches_df,
+                common_file=common_file + "_analog",
+                lib_match_json=lib_match_json,
+                input_str=input_label,
+                parameter_str=params_label,
+                usi=usi,
+                format_out_json=export_json,
+                compress_out_html=export_html,
+                skip_html=not export_html,
+                skip_json=not export_json,
+            )
+    
+    # Cleanup: Remove individual domain JSON files if not exporting JSON
+    # (they were created temporarily for the combined tree)
+    if not export_json:
+        for domain_name, special_masst in domain_map.items():
+            if domain_name in domains_to_export:
+                json_file = "{}_{}.json".format(common_file, special_masst.prefix)
+                if os.path.exists(json_file):
+                    try:
+                        os.remove(json_file)
+                        logger.debug("Removed temporary JSON file: %s", json_file)
+                    except Exception as e:
+                        logger.debug("Could not remove JSON file %s: %s", json_file, e)
+                
+                if analog:
+                    json_file_analog = "{}_{}.json".format(common_file + "_analog", special_masst.prefix)
+                    if os.path.exists(json_file_analog):
+                        try:
+                            os.remove(json_file_analog)
+                            logger.debug("Removed temporary JSON file: %s", json_file_analog)
+                        except Exception as e:
+                            logger.debug("Could not remove JSON file %s: %s", json_file_analog, e)
+        
+        # Also remove combined JSON files if created
+        if "combined" in domains_to_export:
+            combined_json = "{}_{}.json".format(common_file, "combined")
+            if os.path.exists(combined_json):
+                try:
+                    os.remove(combined_json)
+                    logger.debug("Removed temporary combined JSON file: %s", combined_json)
+                except Exception as e:
+                    logger.debug("Could not remove JSON file %s: %s", combined_json, e)
+            
+            if analog:
+                combined_json_analog = "{}_{}.json".format(common_file + "_analog", "combined")
+                if os.path.exists(combined_json_analog):
+                    try:
+                        os.remove(combined_json_analog)
+                        logger.debug("Removed temporary combined JSON file: %s", combined_json_analog)
+                    except Exception as e:
+                        logger.debug("Could not remove JSON file %s: %s", combined_json_analog, e)
 
     return unfiltered_matches_df
 
@@ -332,6 +277,9 @@ def query_usi_or_id(
     analog_mass_above=200,
     database: str | DataBase = None,
     library: str | DataBase = None,
+    export_domains="all",
+    export_html=True,
+    export_json=False,
 ):
     """
     NOTE: database and library are the fasst database, if None, we fall back on defaults provided by the system, otherwise we can set a string
@@ -404,6 +352,9 @@ def query_usi_or_id(
             input_label,
             params_label,
             usi_utils.ensure_usi(usi_or_lib_id),
+            export_domains,
+            export_html,
+            export_json,
         )
         return True
     except Exception as e:
@@ -428,6 +379,9 @@ def query_spectrum(
     lib_id=None,
     database: str | DataBase = None,
     library: str | DataBase = None,
+    export_domains="all",
+    export_html=True,
+    export_json=False,
 ):
     """
     NOTE: database and library are the fasst database, if None, we fall back on defaults provided by the system, otherwise we can set a string
@@ -502,6 +456,9 @@ def query_spectrum(
             input_label,
             params_label,
             usi,
+            export_domains,
+            export_html,
+            export_json,
         )
         return True
     except Exception as e:
