@@ -7,9 +7,10 @@ import argparse
 from distutils.util import strtobool
 import pyteomics.mgf
 from pathlib import Path
+import json
 
 from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import wait
+from concurrent.futures import as_completed
 
 import masst_client
 from masst_utils import DataBase
@@ -23,6 +24,49 @@ tqdm.pandas()
 
 def path_safe(file):
     return re.sub("[^-a-zA-Z0-9_.() ]+", "_", file)
+
+
+def report_progress(jobs_df, progress_path="progress.json"):
+    total_jobs = len(jobs_df)
+    succeeded = int(jobs_df["success"].sum())
+    success_rate = 1 if total_jobs == 0 else succeeded / float(total_jobs)
+
+    progress = {
+        "success_rate": success_rate,
+        "succeeded": succeeded,
+        "total_jobs": total_jobs,
+        "failed": total_jobs - succeeded,
+        "completed_jobs": total_jobs,
+        "pending_jobs": 0,
+    }
+    _write_progress(progress_path, progress)
+    return success_rate
+
+
+def _write_progress(progress_path, progress):
+    progress_file = Path(progress_path)
+    if progress_file.suffix:
+        tmp_file = progress_file.with_suffix(progress_file.suffix + ".tmp")
+    else:
+        tmp_file = Path(str(progress_file) + ".tmp")
+
+    # Write atomically so readers never see a partially written JSON file.
+    tmp_file.write_text(json.dumps(progress, indent=2))
+    tmp_file.replace(progress_file)
+
+
+def report_partial_progress(progress_path, total_jobs, completed_jobs, succeeded):
+    failed = completed_jobs - succeeded
+    pending = total_jobs - completed_jobs
+    progress = {
+        "success_rate": 1 if total_jobs == 0 else succeeded / float(total_jobs),
+        "succeeded": succeeded,
+        "total_jobs": total_jobs,
+        "failed": failed,
+        "completed_jobs": completed_jobs,
+        "pending_jobs": pending,
+    }
+    _write_progress(progress_path, progress)
 
 
 def run_on_usi_list_or_mgf_file(
@@ -47,6 +91,7 @@ def run_on_usi_list_or_mgf_file(
     export_domains="all",
     export_html=True,
     export_json=False,
+    progress_path="progress.json",
 ):
     """
 
@@ -84,6 +129,7 @@ def run_on_usi_list_or_mgf_file(
             export_domains=export_domains,
             export_html=export_html,
             export_json=export_json,
+            progress_path=progress_path,
         )
     else:
         return run_on_usi_and_id_list(
@@ -106,6 +152,7 @@ def run_on_usi_list_or_mgf_file(
             export_domains=export_domains,
             export_html=export_html,
             export_json=export_json,
+            progress_path=progress_path,
         )
 
 
@@ -129,6 +176,7 @@ def run_on_usi_and_id_list(
     export_domains="all",
     export_html=True,
     export_json=False,
+    progress_path="progress.json",
 ):
     jobs_df = pd.read_csv(input_file, sep=sep)
     jobs_df.rename(
@@ -159,8 +207,12 @@ def run_on_usi_and_id_list(
             "Running fast microbe masst on input n={} spectra".format(len(jobs_df))
         )
 
+    total_jobs = len(jobs_df)
+    report_partial_progress(progress_path, total_jobs, 0, 0)
+    jobs_df = jobs_df.reset_index(drop=True)
+
     with ThreadPoolExecutor(parallel_queries) as executor:
-        futures = [
+        future_to_pos = {
             executor.submit(
                 masst_client.query_usi_or_id,
                 out_filename_no_ext,
@@ -178,18 +230,29 @@ def run_on_usi_and_id_list(
                 export_domains=export_domains,
                 export_html=export_html,
                 export_json=export_json,
+            ): pos
+            for pos, (compound_id, name) in enumerate(
+                zip(jobs_df["input_id"], jobs_df["Compound"])
             )
-            for compound_id, name in zip(jobs_df["input_id"], jobs_df["Compound"])
-        ]
+        }
 
-        wait(futures)
-        jobs_df["success"] = [f.result() for f in futures]
+        successes = [False] * total_jobs
+        completed_jobs = 0
+        succeeded = 0
+
+        for future in as_completed(future_to_pos):
+            pos = future_to_pos[future]
+            result = bool(future.result())
+            successes[pos] = result
+            completed_jobs += 1
+            if result:
+                succeeded += 1
+            report_partial_progress(progress_path, total_jobs, completed_jobs, succeeded)
+
+        jobs_df["success"] = successes
 
     # return success rate
-    total_jobs = len(jobs_df)
-    return (
-        1 if total_jobs == 0 else len(jobs_df[jobs_df["success"]]) / float(total_jobs)
-    )
+    return report_progress(jobs_df, progress_path=progress_path)
 
 
 def run_on_mgf(
@@ -209,6 +272,7 @@ def run_on_mgf(
     export_domains="all",
     export_html=True,
     export_json=False,
+    progress_path="progress.json",
 ):
     ids, precursor_mzs, precursor_charges, lib_ids = [], [], [], []
     mzs, intensities = [], []
@@ -264,41 +328,53 @@ def run_on_mgf(
         )
 
     total_jobs = len(jobs_df)
+    report_partial_progress(progress_path, total_jobs, 0, 0)
+    jobs_df = jobs_df.reset_index(drop=True)
     if total_jobs <= 1:
-        jobs_df["success"] = [
-            masst_client.query_spectrum(
-                out_filename_no_ext,
-                name,
-                prec_mz,
-                prec_charge,
-                mz_array,
-                intensity_array,
-                precursor_mz_tol=precursor_mz_tol,
-                mz_tol=mz_tol,
-                min_cos=min_cos,
-                min_matched_signals=min_matched_signals,
-                analog=analog,
-                analog_mass_below=analog_mass_below,
-                analog_mass_above=analog_mass_above,
-                database=database,
-                library=library,
-                lib_id=lib_id,
-                export_domains=export_domains,
-                export_html=export_html,
-                export_json=export_json,
+        successes = []
+        completed_jobs = 0
+        succeeded = 0
+        for name, lib_id, prec_mz, prec_charge, mz_array, intensity_array in zip(
+            jobs_df["Compound"],
+            jobs_df["lib_id"],
+            jobs_df["precursor_mz"],
+            jobs_df["precursor_charge"],
+            jobs_df["mzs"],
+            jobs_df["intensities"],
+        ):
+            result = bool(
+                masst_client.query_spectrum(
+                    out_filename_no_ext,
+                    name,
+                    prec_mz,
+                    prec_charge,
+                    mz_array,
+                    intensity_array,
+                    precursor_mz_tol=precursor_mz_tol,
+                    mz_tol=mz_tol,
+                    min_cos=min_cos,
+                    min_matched_signals=min_matched_signals,
+                    analog=analog,
+                    analog_mass_below=analog_mass_below,
+                    analog_mass_above=analog_mass_above,
+                    database=database,
+                    library=library,
+                    lib_id=lib_id,
+                    export_domains=export_domains,
+                    export_html=export_html,
+                    export_json=export_json,
+                )
             )
-            for name, lib_id, prec_mz, prec_charge, mz_array, intensity_array in zip(
-                jobs_df["Compound"],
-                jobs_df["lib_id"],
-                jobs_df["precursor_mz"],
-                jobs_df["precursor_charge"],
-                jobs_df["mzs"],
-                jobs_df["intensities"],
-            )
-        ]
+            successes.append(result)
+            completed_jobs += 1
+            if result:
+                succeeded += 1
+            report_partial_progress(progress_path, total_jobs, completed_jobs, succeeded)
+
+        jobs_df["success"] = successes
     else:
         with ThreadPoolExecutor(parallel_queries) as executor:
-            futures = [
+            future_to_pos = {
                 executor.submit(
                     masst_client.query_spectrum,
                     out_filename_no_ext,
@@ -320,25 +396,43 @@ def run_on_mgf(
                     export_domains=export_domains,
                     export_html=export_html,
                     export_json=export_json,
+                ): pos
+                for pos, (
+                    name,
+                    lib_id,
+                    prec_mz,
+                    prec_charge,
+                    mz_array,
+                    intensity_array,
+                ) in enumerate(
+                    zip(
+                        jobs_df["Compound"],
+                        jobs_df["lib_id"],
+                        jobs_df["precursor_mz"],
+                        jobs_df["precursor_charge"],
+                        jobs_df["mzs"],
+                        jobs_df["intensities"],
+                    )
                 )
-                for name, lib_id, prec_mz, prec_charge, mz_array, intensity_array in zip(
-                    jobs_df["Compound"],
-                    jobs_df["lib_id"],
-                    jobs_df["precursor_mz"],
-                    jobs_df["precursor_charge"],
-                    jobs_df["mzs"],
-                    jobs_df["intensities"],
-                )
-            ]
+            }
 
-            wait(futures)
-            jobs_df["success"] = [f.result() for f in futures]
+            successes = [False] * total_jobs
+            completed_jobs = 0
+            succeeded = 0
+
+            for future in as_completed(future_to_pos):
+                pos = future_to_pos[future]
+                result = bool(future.result())
+                successes[pos] = result
+                completed_jobs += 1
+                if result:
+                    succeeded += 1
+                report_partial_progress(progress_path, total_jobs, completed_jobs, succeeded)
+
+            jobs_df["success"] = successes
 
     # return success rate
-    total_jobs = len(jobs_df)
-    return (
-        1 if total_jobs == 0 else len(jobs_df[jobs_df["success"]]) / float(total_jobs)
-    )
+    return report_progress(jobs_df, progress_path=progress_path)
 
 
 def create_params_label(

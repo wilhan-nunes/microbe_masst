@@ -99,9 +99,11 @@ def process_matches(
     except:
         pass
 
-    # Skip all domain tree processing if no visualizations are needed
-    # and export_domains is "none" or if both HTML and JSON export are disabled
-    skip_all_trees = (export_domains.lower() == "none") or (not export_html and not export_json)
+    export_domains_norm = str(export_domains).strip().lower()
+
+    # Skip all domain processing only when explicitly requested.
+    # Even with HTML/JSON disabled, selected domains should still export counts TSV files.
+    skip_all_trees = export_domains_norm == "none"
     
     if skip_all_trees:
         logger.debug("Skipping all domain tree processing for %s (export_domains=%s, export_html=%s, export_json=%s)", 
@@ -112,12 +114,27 @@ def process_matches(
     lib_match_json = lib_matches_df.to_json(orient="records")
     
     # Parse export_domains parameter (supports semicolon or comma separation)
-    if export_domains == "all":
+    if export_domains_norm == "all":
         domains_to_export = ["microbe", "plant", "food", "tissue", "personalCareProduct", "microbiome", "combined"]
     else:
-        # Split by semicolon (from multi-select) or comma, and add combined if any domain is selected
-        separator = ";" if ";" in export_domains else ","
-        domains_to_export = [d.strip() for d in export_domains.split(separator) if d.strip()]
+        # Split by semicolon or comma and normalize common case variants.
+        parsed_domains = [d.strip() for d in re.split(r"[;,]", str(export_domains)) if d.strip()]
+        domain_aliases = {
+            "microbe": "microbe",
+            "plant": "plant",
+            "food": "food",
+            "tissue": "tissue",
+            "personalcareproduct": "personalCareProduct",
+            "microbiome": "microbiome",
+        }
+        domains_to_export = []
+        for domain_name in parsed_domains:
+            canonical = domain_aliases.get(domain_name.lower())
+            if canonical and canonical not in domains_to_export:
+                domains_to_export.append(canonical)
+            elif not canonical:
+                logger.warning("Ignoring unknown export domain: %s", domain_name)
+
         if domains_to_export:
             domains_to_export.append("combined")
     
@@ -241,27 +258,24 @@ def process_matches(
 
 
 def common_base_file_name(compound_name, file_name, max_filename_len=50):
-    """Build base file path from file_name and compound_name.
-    Truncates the filename component to max_filename_len characters
-    (leaving room for suffixes like '_unfiltered_matches.tsv') and
-    appends a short hash to preserve uniqueness when truncated.
-    """
-    if compound_name:
-        safe_name = compound_name.replace(" ", "_")
-        full = "{}_{}".format(file_name, safe_name)
-        # Split into directory and filename parts
-        if "/" in full:
-            dir_part, fname = full.rsplit("/", 1)
-        else:
-            dir_part, fname = "", full
+    if not compound_name:
+        return file_name
 
-        if len(fname) > max_filename_len:
-            name_hash = hashlib.md5(safe_name.encode()).hexdigest()[:8]
-            fname = fname[: max_filename_len - 9] + "_" + name_hash
+    safe_name = compound_name.replace(" ", "_")
+    full = "{}_{}".format(file_name, safe_name)
 
-        return "{}/{}".format(dir_part, fname) if dir_part else fname
-    else:
-        return "{}".format(file_name)
+    dir_part, fname = full.rsplit("/", 1) if "/" in full else ("", full)
+
+    if len(fname) > max_filename_len:
+        # Keep beginning and end, join with a short hash for uniqueness
+        name_hash = hashlib.md5(fname.encode()).hexdigest()[:6]
+        # Budget: max_filename_len - hash(6) - separators(2) = chars for head+tail
+        budget = max_filename_len - 8
+        head = budget * 2 // 3
+        tail = budget - head
+        fname = "{}~{}~{}".format(fname[:head], name_hash, fname[-tail:])
+
+    return "{}/{}".format(dir_part, fname) if dir_part else fname
 
 
 def query_usi_or_id(

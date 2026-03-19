@@ -33,6 +33,7 @@ def main(
     export_json=False,
 ):
     sep = "," if input_file.endswith("csv") else "\t"
+    progress_path = f"{output_file}_progress.json"
     
     # Convert database string to enum
     try:
@@ -57,6 +58,7 @@ def main(
         export_domains=export_domains,
         export_html=export_html,
         export_json=export_json,
+        progress_path=progress_path,
         sep=sep,
     )
 
