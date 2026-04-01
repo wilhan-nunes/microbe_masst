@@ -16,6 +16,7 @@ import masst_utils as masst
 import usi_utils
 
 MATCH_COLUMNS = ["Delta Mass", "USI", "Cosine", "Matching Peaks", "Status"]
+TIMEOUT_NO_RESULTS_STATUS = "timeout whithout any results"
 
 LIB_COLUMNS = [
     "USI",
@@ -324,7 +325,12 @@ def query_usi_or_id(
                 compound_name,
                 usi_or_lib_id,
             )
-            return False
+            export_empty_masst_results(
+                compound_name,
+                file_name,
+                status=TIMEOUT_NO_RESULTS_STATUS,
+            )
+            return True
 
         if len(matches["results"]) == 0:
             export_empty_masst_results(compound_name, file_name)
@@ -372,6 +378,13 @@ def query_usi_or_id(
         )
         return True
     except Exception as e:
+        if "timeout" in str(e).lower() and "result" in str(e).lower():
+            export_empty_masst_results(
+                compound_name,
+                file_name,
+                status=TIMEOUT_NO_RESULTS_STATUS,
+            )
+            return True
         # logger.exception(e)
         return False
 
@@ -421,9 +434,14 @@ def query_spectrum(
             database=database,
         )
         if not matches or "results" not in matches:
-            # export empty masst results file to signal that service was successful
+            # export placeholder file so the timeout is visible in output
             logger.debug("Empty fastMASST response for spectrum %s", compound_name)
-            return False
+            export_empty_masst_results(
+                compound_name,
+                file_name,
+                status=TIMEOUT_NO_RESULTS_STATUS,
+            )
+            return True
 
         if len(matches["results"]) == 0:
             export_empty_masst_results(compound_name, file_name)
@@ -476,14 +494,24 @@ def query_spectrum(
         )
         return True
     except Exception as e:
+        if "timeout" in str(e).lower() and "result" in str(e).lower():
+            export_empty_masst_results(
+                compound_name,
+                file_name,
+                status=TIMEOUT_NO_RESULTS_STATUS,
+            )
+            return True
         return False
 
 
-def export_empty_masst_results(compound_name, file_name):
+def export_empty_masst_results(compound_name, file_name, status=None):
     try:
         path = "{}_matches.tsv".format(common_base_file_name(compound_name, file_name))
+        prepare_paths(file=path)
         with open(path, "w") as file:
-            file.write("USI	Cosine	Matching Peaks	Status\n")
+            file.write("\t".join(MATCH_COLUMNS) + "\n")
+            if status:
+                file.write("\t\t\t\t{}\n".format(status))
     except:
         pass
 
