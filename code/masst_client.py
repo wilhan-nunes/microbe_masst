@@ -506,7 +506,7 @@ def query_spectrum(
 
 def export_empty_masst_results(compound_name, file_name, status=None):
     try:
-        path = "{}_matches.tsv".format(common_base_file_name(compound_name, file_name))
+        path = "{}_EMPTY_matches.tsv".format(common_base_file_name(compound_name, file_name))
         prepare_paths(file=path)
         with open(path, "w") as file:
             file.write("\t".join(MATCH_COLUMNS) + "\n")
