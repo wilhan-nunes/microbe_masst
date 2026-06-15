@@ -368,7 +368,6 @@ def extract_matches_from_masst_results(
         masst_df.drop(
             columns=existing_columns_to_drop,
             inplace=True,
-            axis=1,
             errors='ignore'
         )
 
@@ -392,7 +391,7 @@ def extract_matches_from_masst_results(
         datasets = results_dict["grouped_by_dataset"]
         dataset_info_dict = dict([(e["Dataset"], e["title"]) for e in datasets])
         # might not be in the df
-        filtered_masst_df.drop(columns=["mzs", "intensities"], inplace=True, axis=1)
+        filtered_masst_df.drop(columns=["mzs", "intensities"], inplace=True)
 
         for match in filtered_masst_df:
             match["dataset_title"] = dataset_info_dict.get(match["Dataset"], None)
