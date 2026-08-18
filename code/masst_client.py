@@ -385,7 +385,10 @@ def query_usi_or_id(
                 status=TIMEOUT_NO_RESULTS_STATUS,
             )
             return True
-        # logger.exception(e)
+        logger.exception(
+            "Failed fastMASST query for compound %s with id %s", compound_name, usi_or_lib_id
+        )
+        export_empty_masst_results(compound_name, file_name, status="ERROR: {}".format(e))
         return False
 
 
@@ -501,6 +504,10 @@ def query_spectrum(
                 status=TIMEOUT_NO_RESULTS_STATUS,
             )
             return True
+        logger.exception(
+            "Failed fastMASST query for compound %s in file %s", compound_name, file_name
+        )
+        export_empty_masst_results(compound_name, file_name, status="ERROR: {}".format(e))
         return False
 
 

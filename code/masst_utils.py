@@ -291,7 +291,7 @@ def get_results(query_parameters_dictionary, host="https://api.fasst.gnps2.org",
     while True:
         print("WAITING FOR RESULTS", current_retries, task_id)
 
-        r = requests.get(os.path.join(host, "search/result/{}".format(task_id)), timeout=30)
+        r = requests.get(urljoin(host, "search/result/{}".format(task_id)), timeout=30)
         r.raise_for_status()
         results_dict = r.json()
 
