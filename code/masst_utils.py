@@ -280,19 +280,23 @@ def _fast_masst(params, host="https://api.fasst.gnps2.org", blocking=True, timeo
     return get_results(params, host=host, blocking=True)
 
 
+IN_FLIGHT_STATUSES = {"PENDING", "RUNNING", "STARTED", "RETRY"}
+
+
 def get_results(query_parameters_dictionary, host="https://api.fasst.gnps2.org", blocking=True):
     task_id = query_parameters_dictionary["task_id"]
-    
+
     retries_max = 120
     current_retries = 0
     while True:
         print("WAITING FOR RESULTS", current_retries, task_id)
-        
+
         r = requests.get(os.path.join(host, "search/result/{}".format(task_id)), timeout=30)
+        r.raise_for_status()
+        results_dict = r.json()
 
         # checking if the results are ready
-        if "results" not in r.json():
-            
+        if isinstance(results_dict, dict) and results_dict.get("status") in IN_FLIGHT_STATUSES:
             time.sleep(2)
             current_retries += 1
 
@@ -302,8 +306,9 @@ def get_results(query_parameters_dictionary, host="https://api.fasst.gnps2.org",
 
             continue
 
-        results_dict = r.json()
-    
+        if isinstance(results_dict, dict) and "results" not in results_dict:
+            raise ValueError(f"Unexpected finished payload without 'results' key: {results_dict}")
+
         return results_dict
 
 
